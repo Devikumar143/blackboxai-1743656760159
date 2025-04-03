@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100">
+    <div class="max-w-3xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="bg-white p-6 rounded-lg shadow">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-800">Your Mentions</h1>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="flex border border-gray-300 rounded-md overflow-hidden">
+                            <a href="{{ url_for('mentions', filter='all') }}"
+                               class="px-3 py-1 text-sm {{ 'bg-blue-600 text-white' if filter == 'all' else 'bg-white hover:bg-gray-100' }}">
+                                All
+                            </a>
+                            <a href="{{ url_for('mentions', filter='unread') }}"
+                               class="px-3 py-1 text-sm {{ 'bg-blue-600 text-white' if filter == 'unread' else 'bg-white hover:bg-gray-100' }}">
+                                Unread
+                            </a>
+                            <a href="{{ url_for('mentions', filter='read') }}"
+                               class="px-3 py-1 text-sm {{ 'bg-blue-600 text-white' if filter == 'read' else 'bg-white hover:bg-gray-100' }}">
+                                Read
+                            </a>
+                        </div>
+                        <div class="flex border border-gray-300 rounded-md overflow-hidden">
+                            <a href="{{ url_for('mentions', sort='newest', filter=filter) }}"
+                               class="px-3 py-1 text-sm {{ 'bg-blue-600 text-white' if sort == 'newest' else 'bg-white hover:bg-gray-100' }}">
+                                Newest
+                            </a>
+                            <a href="{{ url_for('mentions', sort='oldest', filter=filter) }}"
+                               class="px-3 py-1 text-sm {{ 'bg-blue-600 text-white' if sort == 'oldest' else 'bg-white hover:bg-gray-100' }}">
+                                Oldest
+                            </a>
+                        </div>
+                    </div>
+                    {% if unread_mentions > 0 and filter != 'read' %}
+                    <form action="/api/mentions/mark_all_read" method="POST">
+                    <button type="submit" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
+                        Mark All as Read
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            
+            {% if mentions %}
+            <div class="space-y-4">
+                {% for mention in mentions %}
+                <div class="border-b border-gray-200 pb-4">
+                    <div class="flex items-start">
+                        <img src="{{ mention.author.avatar_url or 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg' }}" 
+                             class="w-10 h-10 rounded-full mr-3">
+                        <div class="flex-1">
+                            <div class="flex items-center">
+                                <span class="font-bold">{{ mention.author.username }}</span>
+                                <span class="text-xs text-gray-500 ml-2">
+                                    {{ mention.timestamp.strftime('%b %d, %H:%M') }}
+                                </span>
+                                {% if not mention.read %}
+                                <span class="ml-2 inline-block w-2 h-2 rounded-full bg-blue-500"></span>
+                                {% endif %}
+                            </div>
+                            <p class="mt-1 text-gray-800">
+                                {% for word in mention.content.split() %}
+                                    {% if word.startswith('@') %}
+                                        {% set username = word[1:] %}
+                                        {% set user = User.query.filter_by(username=username).first() %}
+                                        {% if user %}
+                                            <span class="text-blue-600 font-semibold">@{{ user.username }}</span>
+                                        {% else %}
+                                            {{ word }}
+                                        {% endif %}
+                                    {% else %}
+                                        {{ word }}
+                                    {% endif %}
+                                {% endfor %}
+                            </p>
+                            <div class="mt-2 flex space-x-3">
+                                <a href="/channels/{{ mention.channel_id }}?message_id={{ mention.id }}"
+                                   class="text-sm text-blue-600 hover:underline">
+                                    Go to message
+                                </a>
+                                {% if mention.read %}
+                                <form action="/api/mentions/{{ mention.id }}/mark_unread" method="POST">
+                                    <button type="submit" 
+                                            class="text-sm text-gray-600 hover:underline">
+                                        Mark as unread
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500">You haven't been mentioned yet.</p>
+            {% endif %}
+            
+            {% if mentions.pages > 1 %}
+            <div class="mt-6 flex justify-center space-x-2">
+                {% if mentions.has_prev %}
+                <a href="{{ url_for('mentions', page=mentions.prev_num) }}"
+                   class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">
+                    Previous
+                </a>
+                {% endif %}
+                
+                {% for page_num in mentions.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                    {% if page_num %}
+                        {% if mentions.page == page_num %}
+                        <span class="px-4 py-2 bg-blue-600 text-white rounded-md">{{ page_num }}</span>
+                        {% else %}
+                        <a href="{{ url_for('mentions', page=page_num) }}"
+                           class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">
+                            {{ page_num }}
+                        </a>
+                        {% endif %}
+                    {% else %}
+                        <span class="px-4 py-2">...</span>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if mentions.has_next %}
+                <a href="{{ url_for('mentions', page=mentions.next_num) }}"
+                   class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
