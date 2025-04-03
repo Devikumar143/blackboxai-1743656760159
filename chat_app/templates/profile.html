@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100">
+    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="flex flex-col md:flex-row gap-6">
+            <!-- Profile Sidebar -->
+            <div class="w-full md:w-1/4 bg-white p-6 rounded-lg shadow">
+                <div class="flex flex-col items-center">
+                    <img id="avatar-preview" src="{{ current_user.avatar_url or 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg' }}" 
+                         class="w-32 h-32 rounded-full object-cover mb-4" alt="Profile Picture">
+                    <h2 class="text-xl font-bold text-gray-800">{{ current_user.username }}</h2>
+                    <p class="text-gray-600 mb-4">{{ current_user.email }}</p>
+                </div>
+                
+                <nav class="mt-6">
+                    <a href="/profile" class="block py-2 px-4 bg-blue-100 text-blue-700 rounded mb-2">Profile Settings</a>
+                    <a href="/channels" class="block py-2 px-4 text-gray-700 hover:bg-gray-100 rounded mb-2">My Channels</a>
+                    <a href="/logout" class="block py-2 px-4 text-gray-700 hover:bg-gray-100 rounded">Logout</a>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="w-full md:w-3/4 bg-white p-6 rounded-lg shadow">
+                <h1 class="text-2xl font-bold text-gray-800 mb-6">Profile Settings</h1>
+                
+                <form id="profile-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Avatar URL</label>
+                        <input type="text" id="avatar-url" value="{{ current_user.avatar_url }}"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Bio</label>
+                        <textarea id="bio" rows="3"
+                                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">{{ current_user.bio }}</textarea>
+                    </div>
+                    
+                    <div class="flex justify-end">
+                        <button type="submit"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('profile-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = {
+        avatar_url: document.getElementById('avatar-url').value,
+        bio: document.getElementById('bio').value
+    };
+
+    try {
+        const response = await fetch('/api/profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            },
+            body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            document.getElementById('avatar-preview').src = result.avatar_url;
+            alert('Profile updated successfully!');
+        } else {
+            const error = await response.json();
+            alert(error.message || 'Failed to update profile');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred while updating profile');
+    }
+});
+</script>
+{% endblock %}
